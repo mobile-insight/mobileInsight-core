@@ -97,8 +97,11 @@ class LtePhyAnalyzer(Analyzer):
         """
         log_item = msg.data.decode()
         # print log_item
-        records = log_item['Records']
-        timestamp = str(log_item['timestamp'])
+        try:
+            records = log_item['Records']
+            timestamp = str(log_item['timestamp'])
+        except KeyError:
+            return
 
         # TODO: Extract PUSCH tx power information and add broadcast to it
 

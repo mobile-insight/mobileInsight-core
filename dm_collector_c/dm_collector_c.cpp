@@ -5,6 +5,7 @@
  * and decodes diagnositic logs from Qualcomm chipsets.
  */
 
+#define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
 #include "consts.h"
@@ -627,7 +628,7 @@ static PyObject *
 dm_collector_c_feed_binary(PyObject *self, PyObject *args) {
     (void) self;
     const char *b;
-    int length;
+    Py_ssize_t length;
     if (!PyArg_ParseTuple(args, "y#", &b, &length)) {
          printf("dm_collector_c_feed_binary returns NULL\n");
         return NULL;

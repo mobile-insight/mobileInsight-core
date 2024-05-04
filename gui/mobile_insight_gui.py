@@ -219,7 +219,7 @@ class WindowClass(wx.Frame):
         mainSizer = wx.BoxSizer(wx.HORIZONTAL)
 
         hbox = wx.BoxSizer(wx.HORIZONTAL)
-        self.grid = wx.grid.Grid(self)
+        self.grid = wx.grid.Grid(panel)
         self.grid.CreateGrid(50, 2)
         self.grid.SetSelectionMode(1)  # 1 is Select Row
 
@@ -229,7 +229,7 @@ class WindowClass(wx.Frame):
 
         hbox.Add(self.grid, 5, wx.EXPAND | wx.ALL, 10)
 
-        leftPanel = wx.Panel(self, -1, size=(-1, -1), style=wx.BORDER_RAISED)
+        leftPanel = wx.Panel(panel, -1, size=(-1, -1), style=wx.BORDER_RAISED)
 
         leftbox = wx.BoxSizer(wx.VERTICAL)
         self.status_text = wx.StaticText(

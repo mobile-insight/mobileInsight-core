@@ -2,6 +2,7 @@
  * 1xev_signaling_control_channel_broadcast.h
  */
 
+#define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include <datetime.h>
 #include <fstream>

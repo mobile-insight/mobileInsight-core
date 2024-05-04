@@ -3,6 +3,7 @@
 #ifndef __DM_COLLECTOR_C_LOG_PACKET_HELPER_H__
 #define __DM_COLLECTOR_C_LOG_PACKET_HELPER_H__
 
+#define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include <datetime.h>
 #include "consts.h"

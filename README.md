@@ -27,6 +27,12 @@ Next, run installation script (but __do not__ execute with root priviledge!):
 
 The install script will install MobileInsight package to your `PYTHONPATH`, install MobileInsight GUI to `/usr/local/bin/mi-gui`, and run an offline analysis example at the end.
 
+> [!WARNING]
+>
+> Recent attempts with the [install-ubuntu.sh](install-ubuntu.sh) script have run into an issue with building Wireshark. Notably, the compiler throws an error for `wireshark-*/epan/epan.h`. The `<glib.h>` header, defined within the `extern "C"` block, has become incompatible with pure C-style. To fix this, move the `#include <glib.h>` line out of the `extern` block -- in fact, you should be able to move all the `#include`s out of it.
+>
+> Remove this warning if/when this change is fixed upstream.
+
 
 ## Dependencies
 

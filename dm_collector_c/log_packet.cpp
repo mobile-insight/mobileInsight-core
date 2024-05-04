@@ -3,6 +3,7 @@
  * Implements log packet message decoding.
  */
 
+#define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include <datetime.h>
 #include <fstream>

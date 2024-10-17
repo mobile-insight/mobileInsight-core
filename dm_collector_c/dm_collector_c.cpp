@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <iostream>
 #include <sstream>
+#include <cfloat>
 
 #ifdef __ANDROID__
 #include <android/log.h>
@@ -524,8 +525,10 @@ dm_collector_c_set_filtered(PyObject *self, PyObject *args) {
     PyObject *sequence = NULL;
     IdVector type_ids;
     bool success = false;
+    double start_timestamp = 0.0;
+    double end_timestamp = DBL_MAX;
 
-    if (!PyArg_ParseTuple(args, "O", &sequence)) {
+    if (!PyArg_ParseTuple(args, "O|dd", &sequence, &start_timestamp, &end_timestamp)) {
         return NULL;
     }
     Py_INCREF(sequence);
@@ -543,7 +546,7 @@ dm_collector_c_set_filtered(PyObject *self, PyObject *args) {
     }
     Py_DECREF(sequence);
 
-    manager_change_config(&g_emanager, NULL, type_ids);
+    manager_set_filter(&g_emanager, type_ids, start_timestamp, end_timestamp);
     Py_RETURN_TRUE;
 
     raise_exception:
@@ -711,13 +714,13 @@ dm_collector_c_receive_log_packet(PyObject *self, PyObject *args) {
                 PyObject *decoded = decode_log_packet(s + 2,  // skip first two bytes
                                                       frame.size() - 2,
                                                       skip_decoding);
-		if (include_timestamp) {
-                    PyObject *ret = Py_BuildValue("(Od)", decoded, posix_timestamp);
+                if (include_timestamp) {
+                        PyObject *ret = Py_BuildValue("(Ody#)", decoded, posix_timestamp, g_emanager.log_object.c_str(), g_emanager.log_object.size());
 
-		    if(decoded != Py_None)
-                      Py_DECREF(decoded);
+                    if(decoded != Py_None)
+                            Py_DECREF(decoded);
 
-		    return ret;
+                    return ret;
                 } else {
                     return decoded;
                 }

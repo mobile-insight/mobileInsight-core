@@ -373,6 +373,20 @@ const Fmt LteRrcOtaPacketFmt_v26[] = {
         {UINT, "Msg Length",                  2}
 };
 
+const Fmt LteRrcOtaPacketFmt_v27[] = {
+        {BYTE_STREAM, "RRC Version Number",   1}, 
+        {UINT, "NR RRC Release Number",       1},
+        {BYTE_STREAM, "NR RRC Version Number",1},
+        {UINT, "Radio Bearer ID",             1},
+        {UINT, "Physical Cell ID",            2},    //Cell ID
+        {UINT, "Freq",                        2},    //frequency
+        {UINT, "SysFrameNum/SubFrameNum",     4},    //System/subsystem frame number 
+        {UINT, "PDU Number",                  1},    //PDU number
+        {UINT, "SIB Mask in SI",              1},
+        {SKIP, NULL,                          3},
+        {UINT, "Msg Length",                  2}
+};
+
 const ValueName LteRrcOtaPduType[] = {
         {0x02, "LTE-RRC_BCCH_DL_SCH"},
         {0x04, "LTE-RRC_PCCH"},

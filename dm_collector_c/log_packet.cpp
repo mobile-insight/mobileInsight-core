@@ -3,6 +3,7 @@
  * Implements log packet message decoding.
  */
 
+#define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include <datetime.h>
 #include <fstream>
@@ -173,7 +174,7 @@ _decode_wcdma_signaling_messages(const char *b, int offset, size_t length,
     std::string type_str = "raw_msg/";
     type_str += ch_name;
     PyObject *t = Py_BuildValue("(sy#s)",
-                                "Msg", b + offset, pdu_length, type_str.c_str());
+                                "Msg", b + offset, (Py_ssize_t)pdu_length, type_str.c_str());
     PyList_Append(result, t);
     Py_DECREF(t);
     return offset - start;
@@ -240,7 +241,7 @@ _decode_umts_nas_ota(const char *b, int offset, size_t length,
 
     int pdu_length = _search_result_int(result, "Message Length");
     PyObject *t = Py_BuildValue("(sy#s)",
-                                "Msg", b + offset, pdu_length,
+                                "Msg", b + offset, (Py_ssize_t)pdu_length,
                                 "raw_msg/NAS");
     PyList_Append(result, t);
     Py_DECREF(t);
@@ -314,13 +315,18 @@ _decode_lte_rrc_ota(const char *b, int offset, size_t length,
                                      ARRAY_SIZE(LteRrcOtaPacketFmt_v26, Fmt),
                                      b, offset, length, result);
             break;
+        case 27:
+            offset += _decode_by_fmt(LteRrcOtaPacketFmt_v27,
+                                     ARRAY_SIZE(LteRrcOtaPacketFmt_v27, Fmt),
+                                     b, offset, length, result);
+            break;
         default:
             printf("(MI)Unknown LTE RRC OTA packet version: %d\n", pkt_ver);
             return 0;
     }
 
     //pkt_ver == 26 added for
-    if(pkt_ver == 19 || pkt_ver == 26) {
+    if(pkt_ver == 19 || pkt_ver == 26 || pkt_ver == 27) {
 
         int pdu_number = _search_result_int(result, "PDU Number");
         int pdu_length = _search_result_int(result, "Msg Length");
@@ -336,9 +342,13 @@ _decode_lte_rrc_ota(const char *b, int offset, size_t length,
             std::string type_str = "raw_msg/";
             type_str += type_name;
             PyObject *t = Py_BuildValue("(sy#s)",
-                                        "Msg", b + offset, pdu_length, type_str.c_str());
+                                        "Msg", b + offset, (Py_ssize_t)pdu_length, type_str.c_str());
+            if (t == NULL) {
+                printf("(MI)ERROR: Py_BuildValue returned NULL for pkt_ver=%d, pdu_length=%d, offset=%d, type=%s\n", pkt_ver, pdu_length, offset, type_name);
+                if (PyErr_Occurred()) PyErr_Print();
+            }
             PyList_Append(result, t);
-            Py_DECREF(t);
+            Py_XDECREF(t);
             return (offset - start) + pdu_length;
         }
 
@@ -358,7 +368,7 @@ _decode_lte_rrc_ota(const char *b, int offset, size_t length,
             std::string type_str = "raw_msg/";
             type_str += type_name;
             PyObject *t = Py_BuildValue("(sy#s)",
-                                        "Msg", b + offset, pdu_length, type_str.c_str());
+                                        "Msg", b + offset, (Py_ssize_t)pdu_length, type_str.c_str());
             PyList_Append(result, t);
             Py_DECREF(t);
             return (offset - start) + pdu_length;
@@ -380,7 +390,7 @@ _decode_lte_rrc_ota(const char *b, int offset, size_t length,
             std::string type_str = "raw_msg/";
             type_str += type_name;
             PyObject *t = Py_BuildValue("(sy#s)",
-                                        "Msg", b + offset, pdu_length, type_str.c_str());
+                                        "Msg", b + offset, (Py_ssize_t)pdu_length, type_str.c_str());
             PyList_Append(result, t);
             Py_DECREF(t);
             return (offset - start) + pdu_length;
@@ -4114,7 +4124,8 @@ _decode_lte_mac_ul_transportblock_subpkt(const char *b, int offset, size_t lengt
     int n_subpkt = _search_result_int(result, "Num SubPkt");
 
     switch (pkt_ver) {
-        case 1: {
+        case 1:
+        case 0x30: {
             PyObject *result_allpkts = PyList_New(0);
             for (int i = 0; i < n_subpkt; i++) {
                 PyObject *result_subpkt = PyList_New(0);
@@ -4144,7 +4155,8 @@ _decode_lte_mac_ul_transportblock_subpkt(const char *b, int offset, size_t lengt
                     bool success = false;
                     PyObject *result_sample_list = PyList_New(0);
                     switch (subpkt_ver) {
-                        case 1: {
+                        case 1:
+                        case 3: {
                             // UL Transport Block Subpacket V1
                             for (int j = 0; j < subpkt_nsample; j++) {
                                 PyObject *result_subpkt_sample = PyList_New(0);
@@ -4853,7 +4865,8 @@ _decode_lte_mac_dl_transportblock_subpkt(const char *b, int offset, size_t lengt
     int n_subpkt = _search_result_int(result, "Num SubPkt");
 
     switch (pkt_ver) {
-        case 1: {
+        case 1:
+        case 0x32: {
             PyObject *result_allpkts = PyList_New(0);
             for (int i = 0; i < n_subpkt; i++) {
                 PyObject *result_subpkt = PyList_New(0);
@@ -5338,7 +5351,8 @@ _decode_lte_mac_ul_bufferstatusinternal_subpkt(const char *b, int offset, size_t
 
     PyObject *old_object;
     switch (pkt_ver) {
-        case 1: {
+        case 1:
+        case 0x30: {
             PyObject *result_allpkts = PyList_New(0);
             for (int i = 0; i < n_subpkt; i++) {
                 PyObject *result_subpkt = PyList_New(0);
@@ -5365,8 +5379,10 @@ _decode_lte_mac_ul_bufferstatusinternal_subpkt(const char *b, int offset, size_t
                 } else {
                     bool success = false;
                     switch (subpkt_ver) {
-                        case 3: {
-                            // UL Buffer Status SubPacket v3
+                        case 1:
+                        case 3:
+                        case 4: {
+                            // UL Buffer Status SubPacket v1/v3/v4
                             PyObject *result_subpkt_allsamples = PyList_New(0);
 
                             for (int j = 0; j < subpkt_nsample; j++) {
@@ -5542,7 +5558,8 @@ _decode_lte_mac_ul_txstatistics_subpkt(const char *b, int offset, size_t length,
     int n_subpkt = _search_result_int(result, "Num SubPkt");
 
     switch (pkt_ver) {
-        case 1: {
+        case 1:
+        case 0x30: {
             PyObject *result_allpkts = PyList_New(0);
             for (int i = 0; i < n_subpkt; i++) {
                 PyObject *result_subpkt = PyList_New(0);
@@ -11411,11 +11428,11 @@ _decode_nr_rrc_ota(const char *b, int offset, size_t length,
                 // RRC Reconfiguration Complete needs special processing
                 char *ul_dcch_msg = _nr_rrc_reconf_complete_to_ul_dcch(b + offset, pdu_length);
                 t = Py_BuildValue("(sy#s)",
-                                  "Msg", ul_dcch_msg, pdu_length + 1, type_str.c_str());
+                                  "Msg", ul_dcch_msg, (Py_ssize_t)(pdu_length + 1), type_str.c_str());
                 delete ul_dcch_msg;
             } else {
                 t = Py_BuildValue("(sy#s)",
-                                  "Msg", b + offset, pdu_length, type_str.c_str());
+                                  "Msg", b + offset, (Py_ssize_t)pdu_length, type_str.c_str());
             }
             PyList_Append(result, t);
             Py_DECREF(t);
@@ -11441,11 +11458,11 @@ _decode_nr_rrc_ota(const char *b, int offset, size_t length,
                 // RRC Reconfiguration Complete needs special processing
                 char *ul_dcch_msg = _nr_rrc_reconf_complete_to_ul_dcch(b + offset, pdu_length);
                 t = Py_BuildValue("(sy#s)",
-                                  "Msg", ul_dcch_msg, pdu_length + 1, type_str.c_str());
+                                  "Msg", ul_dcch_msg, (Py_ssize_t)(pdu_length + 1), type_str.c_str());
                 delete ul_dcch_msg;
             } else {
                 t = Py_BuildValue("(sy#s)",
-                                  "Msg", b + offset, pdu_length, type_str.c_str());
+                                  "Msg", b + offset, (Py_ssize_t)pdu_length, type_str.c_str());
             }
             PyList_Append(result, t);
             Py_DECREF(t);
@@ -11477,12 +11494,12 @@ _decode_nr_rrc_ota(const char *b, int offset, size_t length,
                 // RRC Reconfiguration Complete needs special processing
                 char* ul_dcch_msg = _nr_rrc_reconf_complete_to_ul_dcch(b + offset, pdu_length);
                 t = Py_BuildValue("(sy#s)",
-                    "Msg", ul_dcch_msg, pdu_length + 1, type_str.c_str());
+                    "Msg", ul_dcch_msg, (Py_ssize_t)(pdu_length + 1), type_str.c_str());
                 delete ul_dcch_msg;
             }
             else {
                 t = Py_BuildValue("(sy#s)",
-                    "Msg", b + offset, pdu_length, type_str.c_str());
+                    "Msg", b + offset, (Py_ssize_t)pdu_length, type_str.c_str());
             }
             PyList_Append(result, t);
             Py_DECREF(t);
@@ -12359,6 +12376,12 @@ decode_log_packet(const char *b, size_t length, bool skip_decoding) {
 
     on_demand_decode(b + offset, length - offset, type_id, result);
 
+    PyObject *t_raw = Py_BuildValue("(sy#s)", "Raw Msg", b, length, "bytearray");
+    if (t_raw) {
+        PyList_Append(result, t_raw);
+        Py_DECREF(t_raw);
+    }
+
     return result;
 }
 
@@ -12390,7 +12413,7 @@ decode_custom_packet (const char *b, size_t length) {
 void
 decode_custom_packet_payload (const char *b, size_t length, PyObject* result)
 {
-    PyObject *pystr = Py_BuildValue("s#", b, length);
+    PyObject *pystr = Py_BuildValue("s#", b, (Py_ssize_t)length);
     PyObject *old_object = _replace_result(result, "Msg", pystr);
     Py_DECREF(old_object);
     Py_DECREF(pystr);
@@ -12530,6 +12553,11 @@ decode_log_packet_modem(const char *b, size_t length, bool skip_decoding) {
             break;
     };
 
+    PyObject *t_raw = Py_BuildValue("(sy#s)", "Raw Msg", b, length, "bytearray");
+    if (t_raw) {
+        PyList_Append(result, t_raw);
+        Py_DECREF(t_raw);
+    }
 
     return result;
 }

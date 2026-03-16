@@ -29,7 +29,7 @@ _decode_nr_nas_sm5g_plain_ota_msg(const char* b, int offset, size_t length,
 
     size_t pdu_length = length - offset;
     PyObject* t = Py_BuildValue("(sy#s)",
-        "Msg", b + offset, pdu_length,
+        "Msg", b + offset, (Py_ssize_t)pdu_length,
         "raw_msg/nas-5gs");
     PyList_Append(result, t);
     Py_DECREF(t);

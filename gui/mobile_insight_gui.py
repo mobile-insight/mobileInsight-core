@@ -174,12 +174,21 @@ class WindowClass(wx.Frame):
         openItem = fileButton.Append(ID_FILE_OPEN, "Open", "Open log file")
         exitItem = fileButton.Append(ID_FILE_EXIT, "Exit", "Exit application")
 
+        filterItem = editButton.Append(wx.ID_ANY, "Filter", "Filter log messages")
+        searchItem = editButton.Append(wx.ID_ANY, "Search", "Search in log messages")
+        timeItem = editButton.Append(wx.ID_ANY, "Time Window", "Select time window")
+        resetItem = editButton.Append(wx.ID_ANY, "Reset", "Reset filters and search")
+
         menuBar.Append(fileButton, 'File')
         menuBar.Append(editButton, "Edit")
         self.SetMenuBar(menuBar)
 
         self.Bind(wx.EVT_MENU, self.Quit, exitItem)
         self.Bind(wx.EVT_MENU, self.Open, openItem)
+        self.Bind(wx.EVT_MENU, self.OnFilter, filterItem)
+        self.Bind(wx.EVT_MENU, self.OnSearch, searchItem)
+        self.Bind(wx.EVT_MENU, self.OnTime, timeItem)
+        self.Bind(wx.EVT_MENU, self.OnReset, resetItem)
 
         # Toolbar
         self.toolbar = self.CreateToolBar(
@@ -219,7 +228,7 @@ class WindowClass(wx.Frame):
         mainSizer = wx.BoxSizer(wx.HORIZONTAL)
 
         hbox = wx.BoxSizer(wx.HORIZONTAL)
-        self.grid = wx.grid.Grid(self)
+        self.grid = wx.grid.Grid(panel)
         self.grid.CreateGrid(50, 2)
         self.grid.SetSelectionMode(1)  # 1 is Select Row
 
@@ -229,7 +238,7 @@ class WindowClass(wx.Frame):
 
         hbox.Add(self.grid, 5, wx.EXPAND | wx.ALL, 10)
 
-        leftPanel = wx.Panel(self, -1, size=(-1, -1), style=wx.BORDER_RAISED)
+        leftPanel = wx.Panel(panel, -1, size=(-1, -1), style=wx.BORDER_RAISED)
 
         leftbox = wx.BoxSizer(wx.VERTICAL)
         self.status_text = wx.StaticText(
@@ -374,6 +383,9 @@ class WindowClass(wx.Frame):
     def OnGridSelect(self, e):
         # self.statusbar.SetStatusText("Selected %d" %e.GetRow())
         row = e.GetRow()
+        if not hasattr(self, 'data_view') or not self.data_view:
+            e.Skip()
+            return
         if (row < len(self.data_view)):
             self.status_text.SetLabel(
                 "Time Stamp : %s    Type : %s" %
